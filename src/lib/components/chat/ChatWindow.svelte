@@ -91,6 +91,7 @@
 		{currentModel}
 		{models}
 		{messages}
+		template={$page.data.templates.template}
 		readOnly={isReadOnly}
 		isAuthor={!shared}
 		{webSearchMessages}

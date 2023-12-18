@@ -4,6 +4,7 @@ import type { Conversation } from "$lib/types/Conversation";
 import { UrlDependency } from "$lib/types/UrlDependency";
 import { defaultModel, models, oldModels, validateModel } from "$lib/server/models";
 import { authCondition, requiresUser } from "$lib/server/auth";
+import templateHandler from "$lib/utils/templateHandler";
 import { DEFAULT_SETTINGS } from "$lib/types/Settings";
 import {
 	SERPAPI_KEY,
@@ -13,7 +14,7 @@ import {
 	USE_LOCAL_WEBSEARCH,
 } from "$env/static/private";
 
-export const load: LayoutServerLoad = async ({ locals, depends }) => {
+export const load: LayoutServerLoad = async ({ locals, depends, fetch }) => {
 	const { conversations } = collections;
 	depends(UrlDependency.ConversationList);
 
@@ -57,6 +58,8 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
 	const userHasExceededMessages = messagesBeforeLogin > 0 && totalMessages > messagesBeforeLogin;
 
 	const loginRequired = requiresUser && !locals.user && userHasExceededMessages;
+
+	const template = await templateHandler({ fetch });
 
 	return {
 		conversations: await conversations
@@ -111,5 +114,6 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
 		loginRequired,
 		loginEnabled: requiresUser,
 		guestMode: requiresUser && messagesBeforeLogin > 0,
+		templates: { template },
 	};
 };

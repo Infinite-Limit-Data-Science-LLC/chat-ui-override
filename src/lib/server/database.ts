@@ -1,3 +1,4 @@
+import { building } from "$app/environment";
 import { MONGODB_URL, MONGODB_DB_NAME, MONGODB_DIRECT_CONNECTION } from "$env/static/private";
 import { GridFSBucket, MongoClient } from "mongodb";
 import type { Conversation } from "$lib/types/Conversation";
@@ -14,22 +15,28 @@ if (!MONGODB_URL) {
 	);
 }
 
-const client = new MongoClient(MONGODB_URL, {
-	directConnection: MONGODB_DIRECT_CONNECTION === "true",
-});
+const LAZY_LOAD_DB = process.env.LAZY_LOAD_DB;
 
-export const connectPromise = client.connect().catch(console.error);
+let client;
 
-const db = client.db(MONGODB_DB_NAME + (import.meta.env.MODE === "test" ? "-test" : ""));
+if (!building || LAZY_LOAD_DB) {
+	client = new MongoClient(MONGODB_URL, {
+		directConnection: MONGODB_DIRECT_CONNECTION === "true",
+	});
+}
 
-const conversations = db.collection<Conversation>("conversations");
-const sharedConversations = db.collection<SharedConversation>("sharedConversations");
-const abortedGenerations = db.collection<AbortedGeneration>("abortedGenerations");
-const settings = db.collection<Settings>("settings");
-const users = db.collection<User>("users");
-const sessions = db.collection<Session>("sessions");
-const messageEvents = db.collection<MessageEvent>("messageEvents");
-const bucket = new GridFSBucket(db, { bucketName: "files" });
+export const connectPromise = client?.connect().catch(console.error);
+
+const db = client?.db(MONGODB_DB_NAME + (import.meta.env.MODE === "test" ? "-test" : ""));
+
+const conversations = db?.collection<Conversation>("conversations");
+const sharedConversations = db?.collection<SharedConversation>("sharedConversations");
+const abortedGenerations = db?.collection<AbortedGeneration>("abortedGenerations");
+const settings = db?.collection<Settings>("settings");
+const users = db?.collection<User>("users");
+const sessions = db?.collection<Session>("sessions");
+const messageEvents = db?.collection<MessageEvent>("messageEvents");
+const bucket = db && new GridFSBucket(db, { bucketName: "files" });
 
 export { client, db };
 export const collections = {
@@ -43,27 +50,29 @@ export const collections = {
 	bucket,
 };
 
-client.on("open", () => {
+client?.on("open", () => {
 	conversations
-		.createIndex(
+		?.createIndex(
 			{ sessionId: 1, updatedAt: -1 },
 			{ partialFilterExpression: { sessionId: { $exists: true } } }
 		)
 		.catch(console.error);
 	conversations
-		.createIndex(
+		?.createIndex(
 			{ userId: 1, updatedAt: -1 },
 			{ partialFilterExpression: { userId: { $exists: true } } }
 		)
 		.catch(console.error);
-	abortedGenerations.createIndex({ updatedAt: 1 }, { expireAfterSeconds: 30 }).catch(console.error);
-	abortedGenerations.createIndex({ conversationId: 1 }, { unique: true }).catch(console.error);
-	sharedConversations.createIndex({ hash: 1 }, { unique: true }).catch(console.error);
-	settings.createIndex({ sessionId: 1 }, { unique: true, sparse: true }).catch(console.error);
-	settings.createIndex({ userId: 1 }, { unique: true, sparse: true }).catch(console.error);
-	users.createIndex({ hfUserId: 1 }, { unique: true }).catch(console.error);
-	users.createIndex({ sessionId: 1 }, { unique: true, sparse: true }).catch(console.error);
-	messageEvents.createIndex({ createdAt: 1 }, { expireAfterSeconds: 60 }).catch(console.error);
-	sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }).catch(console.error);
-	sessions.createIndex({ sessionId: 1 }, { unique: true }).catch(console.error);
+	abortedGenerations
+		?.createIndex({ updatedAt: 1 }, { expireAfterSeconds: 30 })
+		.catch(console.error);
+	abortedGenerations?.createIndex({ conversationId: 1 }, { unique: true }).catch(console.error);
+	sharedConversations?.createIndex({ hash: 1 }, { unique: true }).catch(console.error);
+	settings?.createIndex({ sessionId: 1 }, { unique: true, sparse: true }).catch(console.error);
+	settings?.createIndex({ userId: 1 }, { unique: true, sparse: true }).catch(console.error);
+	users?.createIndex({ hfUserId: 1 }, { unique: true }).catch(console.error);
+	users?.createIndex({ sessionId: 1 }, { unique: true, sparse: true }).catch(console.error);
+	messageEvents?.createIndex({ createdAt: 1 }, { expireAfterSeconds: 60 }).catch(console.error);
+	sessions?.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }).catch(console.error);
+	sessions?.createIndex({ sessionId: 1 }, { unique: true }).catch(console.error);
 });

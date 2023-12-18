@@ -12,6 +12,7 @@
 	import SystemPromptModal from "../SystemPromptModal.svelte";
 
 	export let messages: Message[];
+	export let template: Record<string, string>;
 	export let loading: boolean;
 	export let pending: boolean;
 	export let isAuthor: boolean;
@@ -41,23 +42,27 @@
 	bind:this={chatContainer}
 >
 	<div class="mx-auto flex h-full max-w-3xl flex-col gap-6 px-5 pt-6 sm:gap-8 xl:max-w-4xl">
-		{#each messages as message, i}
-			{#if i === 0 && preprompt && preprompt != currentModel.preprompt}
-				<SystemPromptModal preprompt={preprompt ?? ""} />
-			{/if}
-			<ChatMessage
-				loading={loading && i === messages.length - 1}
-				{message}
-				{isAuthor}
-				{readOnly}
-				model={currentModel}
-				webSearchMessages={i === messages.length - 1 ? webSearchMessages : []}
-				on:retry
-				on:vote
-			/>
+		{#if messages.length}
+			{#each messages as message, i}
+				{#if i === 0 && preprompt && preprompt != currentModel.preprompt}
+					<SystemPromptModal preprompt={preprompt ?? ""} />
+				{/if}
+				<ChatMessage
+					loading={loading && i === messages.length - 1}
+					{message}
+					{isAuthor}
+					{readOnly}
+					model={currentModel}
+					webSearchMessages={i === messages.length - 1 ? webSearchMessages : []}
+					on:retry
+					on:vote
+				/>
+			{/each}
+		{:else if template.html}
+			{@html template.html}
 		{:else}
 			<ChatIntroduction {models} {currentModel} on:message />
-		{/each}
+		{/if}
 		{#if pending}
 			<ChatMessage
 				message={{ from: "assistant", content: "", id: randomUUID() }}

@@ -7,6 +7,7 @@
 	import { pendingMessage } from "$lib/stores/pendingMessage";
 	import { useSettingsStore } from "$lib/stores/settings.js";
 	import { findCurrentModel } from "$lib/utils/models";
+	import templateHandler from "$lib/utils/templateHandler/index.js";
 
 	export let data;
 	let loading = false;
